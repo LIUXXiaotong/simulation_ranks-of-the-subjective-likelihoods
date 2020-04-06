@@ -125,10 +125,10 @@ rank1 <- unique_rank %>%
 
 rank2 <- unique_rank %>% 
   group_by(`P(A^B)_P(A^¬B)_P(¬A^B)_P(¬B^¬A)`) %>%
-  nest() ### there are more than 24 subsets here bc I considered the tied rankings 
+  nest() ### there are  24 subsets 
 
 rank3 <- unique_rank %>% 
   group_by(`P(A∨B)_P(A^∨B)_P(¬A∨B)_P(¬B∨¬A)`) %>%
-  nest() ### there are more than 24 subsets here bc I considered the tied rankings 
+  nest() ### there are  24 subsets 
 
 
