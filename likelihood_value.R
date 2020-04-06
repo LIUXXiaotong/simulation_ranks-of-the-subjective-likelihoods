@@ -70,14 +70,14 @@ likelihood <- function (b, a_b, a_B) { ##input: P(B) & P(A|B) & P(A|¬B)
 }
 
 
-b <- seq(0, 1, by = 0.1) 
+b <- seq(0, 1, by = 0.01) 
 length(b)
 
 
-a_b <- seq(0, 1, by = 0.1)
+a_b <- seq(0, 1, by = 0.01)
 length(a_b)
 
-a_B <- seq(0, 1, by = 0.1)
+a_B <- seq(0, 1, by = 0.01)
 length(a_B)
 
 
@@ -97,4 +97,5 @@ for (i in seq_along(b)) {
   }
 }
 
-（ likelihood_value <- likelihood_value %>% data.frame() ）### issue: P(¬A^B), P(¬A^B) can be below 0 ?
+ likelihood_value <- likelihood_value %>% data.frame() ### issue: P(¬A^B), P(¬A^B) can be below 0 ?
+ write.csv(likelihood_value, file = 'likelihood_value.csv')
