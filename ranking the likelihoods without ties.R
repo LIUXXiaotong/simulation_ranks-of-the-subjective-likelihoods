@@ -125,18 +125,13 @@ rank1 <- unique_rank %>%
 
 rank2 <- unique_rank %>% 
   group_by(`P(A^B)_P(A^¬B)_P(¬A^B)_P(¬B^¬A)`) %>%
-<<<<<<< HEAD
   nest() ### there are  24 subsets 
 
 rank3 <- unique_rank %>% 
   group_by(`P(A∨B)_P(A^∨B)_P(¬A∨B)_P(¬B∨¬A)`) %>%
   nest() ### there are  24 subsets 
 
-=======
-  nest() ### there are 24 subsets here
-
-rank3 <- unique_rank %>% 
-  group_by(`P(A∨B)_P(A^∨B)_P(¬A∨B)_P(¬B∨¬A)`) %>%
-  nest() ### there are 24 subsets here 
->>>>>>> d35ea22bb984f41bedaa54afaf05f6d088bed892
-
+write.csv(unique_rank, file = 'unique_rank.csv')
+write.csv(rank1, file = 'rank1.csv')
+write.csv(rank2, file = 'rank2.csv' )
+write.csv(rank3, file = 'rank3.csv')
