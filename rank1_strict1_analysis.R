@@ -93,4 +93,8 @@ table_marg_conj_8 <- table_marg_conj(table_marg_conj_8 )
 
 rank1_strict1_table_marg_conj <- rbind(table_marg_conj_1, table_marg_conj_2, table_marg_conj_3, table_marg_conj_4,
       table_marg_conj_5, table_marg_conj_6, table_marg_conj_7, table_marg_conj_8)
+
+sum(rank1_strict1_table_marg_conj$number) ###217
+
+
 write.csv(rank1_strict1_table_marg_conj, file = 'rank1_strict1_table_marg_conj.csv')
