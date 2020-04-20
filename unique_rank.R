@@ -83,7 +83,7 @@ for ( i in seq_along(b) ) {
   }
 }
 
-( unique_rank <- unique(rank_value) %>% as.data.frame())
+ unique_rank <- unique(rank_value) %>% as.data.frame()
 
 write.csv(unique_rank, file = 'unique_rank.csv')
 

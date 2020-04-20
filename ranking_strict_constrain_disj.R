@@ -1,5 +1,5 @@
 unique_rank <- read.csv("unique_rank.csv", check.names=FALSE)
-( unique_rank <- unique_rank[, -1] )
+ unique_rank <- unique_rank[, -1] 
 
 #################################################################################################################
 ### we ##3 constrain the disjunction events
