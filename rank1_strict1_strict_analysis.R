@@ -3,7 +3,7 @@ library("reshape2")
 options(digits = 3)
 
 rank1_strict1_strict <- read.csv("rank1_strict1_strict.csv", check.names=FALSE)
-( rank1_strict1_strict <- rank1_strict1_strict[, -1] )
+rank1_strict1_strict <- rank1_strict1_strict[, -1] 
 
 
 (rank1_strict1_strict_marg <- rank1_strict1_strict %>% group_by(`P(A)_P(¬A)_P(B)_P(¬B)`) %>% count() ) ###8 rows
@@ -95,4 +95,5 @@ rank1_strict1_strict_table_marg_conj <- rbind(table_marg_conj_1, table_marg_conj
                                        table_marg_conj_5, table_marg_conj_6, table_marg_conj_7, table_marg_conj_8)
 sum(rank1_strict1_strict_table_marg_conj$number) ### check 
 
-write.csv(rank1_strict1_strict_table_marg_conj, file = 'rank1_strict1_strict_table_marg_conj.csv')
+write.csv(rank1_strict1_strict_table_marg_conj, file = 'rank1_strict1_strict_table_marg_conj.csv', row.names = F)
+
