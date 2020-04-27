@@ -95,5 +95,5 @@ rank1_strict1_strict2_table_marg_disj <- rbind(table_marg_disj_1, table_marg_dis
                                               table_marg_disj_5, table_marg_disj_6, table_marg_disj_7, table_marg_disj_8)
 sum(rank1_strict1_strict2_table_marg_disj$number) ### check 
 
-write.csv(rank1_strict1_strict2_table_marg_disj, file = 'rank1_strict1_strict2_table_marg_disj.csv')
+write.csv(rank1_strict1_strict2_table_marg_disj, file = 'rank1_strict1_strict2_table_marg_disj.csv', row.names = F)
 
