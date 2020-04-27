@@ -7,7 +7,7 @@ rank2_strict2_strict <- read.csv("rank2_strict2_strict.csv", check.names=FALSE)
 
 
 (rank2_strict2_strict_conj <- rank2_strict2_strict %>% group_by(`P(A^B)_P(A^¬B)_P(¬A^B)_P(¬B^¬A)`) %>% count() ) ###24 rows
-### there are 24 permutations in P(A)_P(¬A)_P(B)_P(¬B)
+### there are 24 permutations in P(A^B)_P(A^¬B)_P(¬A^B)_P(¬B^¬A)
 
 #################################################################################################################################
 #################################################################################################################################
