@@ -195,4 +195,4 @@ rank3_strict3_strict2_table_disj_conj <- rbind(table_disj_conj_1, table_disj_con
 
 sum(rank3_strict3_strict2_table_disj_conj$number) ### check 
 
-write.csv(rank3_strict3_strict2_table_disj_conj, file = 'rank3_strict3_strict2_table_disj_conj.csv')
+write.csv(rank3_strict3_strict2_table_disj_conj, file = 'rank3_strict3_strict2_table_disj_conj.csv', row.names = F)
