@@ -195,4 +195,4 @@ rank3_strict3_strict_table_disj_marg <- rbind(table_disj_marg_1, table_disj_marg
 
 sum(rank3_strict3_strict_table_disj_marg$number) ### check 
 
-write.csv(rank3_strict3_strict_table_disj_marg, file = 'rank3_strict3_strict_table_disj_marg.csv')
+write.csv(rank3_strict3_strict_table_disj_marg, file = 'rank3_strict3_strict_table_disj_marg.csv', row.names = F)
