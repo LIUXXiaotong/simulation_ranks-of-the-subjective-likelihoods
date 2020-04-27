@@ -81,14 +81,14 @@ table_marg_disj_6 <- table_marg_disj(table_marg_disj_6 )
 table_marg_disj_7 <- table_marg_disj_agg %>% 
   filter( `P(A)_P(¬A)_P(B)_P(¬B)`  ==  "4 1 2 3")
 
-table_marg_disj_7 <- table_marg_disj(table_marg_disj_7 )
+table_marg_disj_7 <- table_marg_disj(table_marg_disj_7)
 
 
 ######### marginal:   4 1 3 2   , count the conj ##################
 table_marg_disj_8 <- table_marg_disj_agg %>% 
   filter( `P(A)_P(¬A)_P(B)_P(¬B)`  ==  "4 1 3 2")
 
-table_marg_disj_8 <- table_marg_disj(table_marg_disj_8 )
+table_marg_disj_8 <- table_marg_disj(table_marg_disj_8)
 
 
 rank1_strict1_strict2_table_marg_disj <- rbind(table_marg_disj_1, table_marg_disj_2, table_marg_disj_3, table_marg_disj_4,
