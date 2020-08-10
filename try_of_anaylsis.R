@@ -1,6 +1,7 @@
 
 library("tidyverse")
 dat <- read_csv("ranking_data2.csv")
+source("analysis_functions.R")
 
 dl <- dat %>% 
   select(-ends_with("order")) %>% 
@@ -17,7 +18,8 @@ dl2 <- dat %>%
                names_to = "event", values_to = "order") %>% 
   filter(!str_detect(order, "-")) %>%
   mutate(set = str_extract(event, "\\d")) %>%  
-  select(-event)
+  select(-event) %>% 
+  separate(order, paste0("order", 1:3))
 
 dl <- dl %>% 
   left_join(dl2)
@@ -25,11 +27,12 @@ dl <- dl %>%
 dl %>% 
   print(n = 20)
 
-dl2 <- dl %>% 
+dl_nest <- dl %>% 
   group_by(X1, PROLIFIC_PID, condition, set, numeracy_score) %>% 
   nest() 
 
-dl2$data[[1]]
+calc_coh_marg_conj(dl_nest$data[[4]])
 
-dl2 %>% 
-  mutate(coherence_overall = map_dbl(data, my_function)) ### write my_function
+
+dl_nest %>% 
+  mutate(coh_marg_conj = map_dbl(data, calc_coh_marg_conj)) ### write my_function
