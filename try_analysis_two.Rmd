@@ -1,0 +1,412 @@
+---
+title: "try_analysis_two"
+author: "Xiaotong"
+date: "14/08/2020"
+output: html_document
+---
+
+2. Method
+
+3. results 
+the questions i want to answer：
+1."how good(rational) people are" (boxplot)
+
+
+2. where are the mistakes (possibly) from? 
+
+
+3."who is better/more rational" - numeracy, reasoning strategy, response time (run regression)
+
+
+```{r}
+library(tidyverse)
+library(afex)
+library(rtdists)
+library(cowplot)
+
+
+
+
+### sanitise_ranks function
+sanitise_ranks <- function(rank) {
+  str_remove_all(rank, "_") %>%
+    str_remove_all(" ")
+}
+
+### %!in% function
+'%!in%' <- function(x, y) !('%in%'(x,y))
+
+
+### experimental data
+dat <- read.csv("ranking_data2.csv")
+
+names(dat)[names(dat) == 'PROLIFIC_PID'] <- 'pid'
+
+dl <- dat %>% 
+  select(-ends_with("order")) %>% 
+  pivot_longer(cols = starts_with("event_set"),
+               names_to = "event", values_to = "response") %>% 
+  filter(str_detect(response, "\\d")) %>% 
+  mutate(set = str_extract(event, "\\d")) %>% 
+  mutate(type = str_remove(event, "event_set\\d_")) %>%
+  select(-event)
+
+dl <- dl %>% 
+  mutate(response = sanitise_ranks(response))
+
+
+########
+dl2 <- dat %>% 
+  select(X, pid, ends_with("order")) %>% 
+  pivot_longer(cols = starts_with("event_set"), 
+               names_to = "event", values_to = "order") %>% 
+  filter(!str_detect(order, "-")) %>%
+  mutate(set = str_extract(event, "\\d")) %>%  
+  select(-event) 
+
+dl <- dl %>% 
+  left_join(dl2)
+
+
+########
+ 
+
+dt_nest <- dl %>% 
+  group_by(X, pid, condition, set, numeracy_score, response_time, strat_1, Strat_2, order ) %>%
+  nest()
+
+
+
+### coherent formalities
+coherence_all <- read.csv("rank1_strict1_strict.csv", check.names=FALSE) 
+coherence_all <- coherence_all[-1]
+
+
+coherence_all <- coherence_all %>% 
+  mutate(marginal = sanitise_ranks(`P(A)_P(¬A)_P(B)_P(¬B)`),
+         conjunction = sanitise_ranks(`P(A^B)_P(A^¬B)_P(¬A^B)_P(¬B^¬A)`),
+         disjunction = sanitise_ranks(`P(A∨B)_P(A∨¬B)_P(¬A∨B)_P(¬B∨¬A)`))
+
+
+
+### write the function to calculate the coherence of the beliefs about three event sets 
+### （marginal event set, conjunction event set, and disjunction event set)
+
+
+calc_logi_three <- function(data){
+  ### browser()
+  
+  ### check if there are logical errors in rankings for marginal 
+  if(data[data$type == "marginal", ]$response %!in%  coherence_all$marginal){
+    return(1)
+  } else {
+    return(0)
+  }
+}
+
+
+### try to run the function 
+dt_nest <- dt_nest %>% 
+  mutate(logical_err = map_dbl(data, calc_logi_three))
+
+
+calc_coherence_all <- function(data){
+  ### browser()
+  
+  ### check if there are logical errors in rankings for marginal 
+  if(data[data$type == "marginal", ]$response %!in%  coherence_all$marginal){
+    return(0) 
+  }  ### if there are logical errors, return 0
+  
+  ### get possible rankings for conjunction given the rank in margianl 
+  possible_ranks_conjunction <- coherence_all %>% 
+    filter(marginal == data[data$type == "marginal", ]$response)
+  
+  #### check if response for conjunction matches 
+  if(data[data$type == "conjunction", ]$response %!in% possible_ranks_conjunction$conjunction){
+    return(0)
+  }
+  
+  ### get possible rankings for disjunction given the ranks in marginal and conjunction 
+  possible_ranks_disjunction <- coherence_all %>% 
+    filter(marginal == data[data$type == "marginal", ]$response & 
+             conjunction == data[data$type == "conjunction", ]$response)
+  
+  ### check if response for disjucntion matches 
+  if(data[data$type == "disjunction", ]$response %in% possible_ranks_disjunction$disjunction){
+    return(1)
+  } else {
+    return(0)
+  }
+  
+}
+
+dt_nest <- dt_nest %>% 
+  mutate(coherence_all = map_dbl(data, calc_coherence_all))
+
+calc_coh_marg_conj <- function(data){
+  ### browser()
+  
+  ### check if there are logical errors in rankings for marginal 
+  if(data[data$type == "marginal", ]$response %!in%  coherence_all$marginal){
+    return(0) 
+  }  ### if there are logical errors, return 0
+  
+  ### get possible rankings for conjunction given the ranks in margianl 
+  possible_ranks_conjunction <- coherence_all %>% 
+    filter(marginal == data[data$type == "marginal", ]$response)
+  
+  #### check if response for conjunction matches 
+  if(data[data$type == "conjunction", ]$response %in% possible_ranks_conjunction$conjunction){
+    return(1)
+  } else{
+    return(0)
+  }
+  
+}
+
+dt_nest <- dt_nest %>% 
+  mutate(coh_marg_conj = map_dbl(data, calc_coh_marg_conj))
+
+calc_coh_marg_disj <- function(data){
+  ### check if there are logical errors in rankings for marginal 
+  if(data[data$type == "marginal", ]$response %!in%  coherence_all$marginal){
+    return(0) 
+  }  ### if there are logical errors, return 0
+  
+  ### get possible rankings for disjunction given the ranks in margianl 
+  possible_ranks_disjunction <- coherence_all %>% 
+    filter(marginal == data[data$type == "marginal", ]$response)
+  
+  #### check if response for disjunction matches 
+  if(data[data$type == "disjunction", ]$response %in% possible_ranks_disjunction$disjunction){
+    return(1)
+  } else{
+    return(0)
+  }
+}
+
+
+dt_nest <- dt_nest %>% 
+  mutate(coh_marg_disj = map_dbl(data, calc_coh_marg_disj))
+
+calc_coh_conj_disj <- function(data){
+  
+  ### get possible rankings for disjunction given the ranks in conjunction 
+  possible_ranks_disjunction <- coherence_all %>% 
+    filter(conjunction == data[data$type == "conjunction", ]$response)
+  
+  ### check if response for disjunction matches 
+  if(data[data$type == "disjunction", ]$response %in% possible_ranks_disjunction$disjunction){
+    return(1)
+  }else{
+    return(0)
+  }
+}
+
+dt_nest <- dt_nest %>% 
+  mutate(coh_conj_disj = map_dbl(data, calc_coh_conj_disj))
+
+
+dt_nest <- dt_nest %>% 
+  mutate(degree_of_coh = (coh_marg_conj + coh_marg_disj + coh_conj_disj) / 3) 
+
+dt_nest[,12:16] %>% as.tibble() %>%
+  print(n=40)
+
+dt2 <- dt_nest %>% 
+  select(-data)
+```
+
+Quesstion 1: how good people are ? 
+
+- look at the distribution of the rate at which individual participants make logical errors under the full ranking condition
+```{r}
+
+dt2_full <- dt2 %>% filter(condition == "full") 
+
+
+dt2_full <- dt2_full %>% group_by(pid) %>% 
+  summarise( ave_logi = mean(logical_err),
+             no_of_set = length(set))
+
+ggplot(dt2_full, aes(x=ave_logi)) +
+  geom_histogram(aes(y=stat(count/sum(count)/width)), binwidth = 0.1) + facet_wrap(~no_of_set) + 
+  ylab("Density") + xlab("Rate of logical errors") + ggtitle("the distribution of the rate at which individual participants make logical errors under full ranking condition") +
+  theme(plot.title = element_text(hjust = 0.5)) + theme_set(theme_bw(base_size = 9)) 
+
+
+
+```
+
+- look at the distribution of individual's degree of coherence under two conditions? 
+```{r}
+
+
+dt2_coherence <- dt2 %>% group_by(pid) %>% 
+mutate(ave_coh = mean(degree_of_coh),
+            no_of_set = length(set))
+
+
+( boxplot1 <- ggplot(dt2_coherence, aes(x=condition, y=ave_coh)) +
+  geom_boxplot() + 
+  scale_y_continuous(name = "degree of coherence") +
+        ggtitle("Boxplot of individual's degree of coherence (including responses with logical errors) ")  +
+        theme_bw() +
+        theme(plot.title = element_text(size = 10)))
+  
+
+dt2_coherence2 <- dt2_coherence %>% 
+  filter(logical_err != "1")
+
+( boxplot2 <- ggplot(dt2_coherence2, aes(x=condition, y=ave_coh)) +
+  geom_boxplot() + 
+  scale_y_continuous(name = "degree of coherence") +
+        ggtitle("Boxplot of individual's degree of coherence (excluding responses with logical errors) ") +
+        theme_bw() +
+        theme(plot.title = element_text(size = 10)))
+
+plot_grid(boxplot1, boxplot2) 
+
+
+
+```
+
+
+Question 2: where are the mistakes (possibly) from? 
+
+method 1: "Does the manipulation of forcing participants to do pairwise comparisons for margianl events increase the coherence between conjunction and disjunction events?"
+when using this method, i did not exclude any responses with logical errors
+
+method 2: "Does the manipulation of forcing participants to do pairwise comparisons for marginal events increase the overall degree of coherence?" 
+When using this method, i would run the ANOVA by including responses with logical errors and run the ANOVA by excluding responses with logical errors respectively.
+
+
+```{r}
+###--------- first step: add a column recording type of the event (weather event versus future related social events)
+
+dt2$event_topic <- ifelse (dt2$set == "1" | dt2$set ==  "2" | dt2$set == "3" | dt2$set == "4", "weather", 
+                          ifelse(dt2$set == "5" | dt2$set ==  "6" | dt2$set == "7" | dt2$set == "8", "social",
+                                 "NA"))
+                                                     
+glimpse(dt2)
+
+
+###-------DV: coherence between conjunction and disjunction events
+a1 <- aov_ez("pid", "coh_conj_disj", dt2, between = "condition", within = "event_topic")
+a1
+
+afex_plot(a1, "condition", "event_topic", error = "within")
+afex_plot(a1, "event_topic","condition",  error = "within") ### the effect of event_topic is significant 
+                                                           ### the effect of condition is not significant
+
+##---------- DV: degree of coherence, including responses with logical errors
+a2 <- aov_ez("pid", "degree_of_coh", dt2, between = "condition", within = "event_topic")
+a2
+
+afex_plot(a2, "condition", "event_topic", error = "within") 
+afex_plot(a2, "event_topic", "condition",  error = "within") ### the effect of event_topic is significant 
+                                                           ### the effect of condition is not significant
+
+
+##---------- DV: degree of coherence, excluding responses with logical errors
+dt2_exclude <- dt2 %>% 
+  filter(logical_err != "1")
+
+a3 <- aov_ez("pid", "degree_of_coh", dt2_exclude, between = "condition", within = "event_topic")
+a3
+
+afex_plot(a3, "condition", "event_topic", error = "within") 
+afex_plot(a3, "event_topic", "condition",  error = "within") ### the effect of event_topic is signiicant;
+                                                            ### the effect of condition is significant
+
+### participants who do not make logical errors when ranking margianl events under full ranking condition, on average, 
+### perform better than participants under pairwise comparison condition in terms of the overall degree of coherence between three event sets (i.e. margianl, conjunction, and disjunction event sets)
+### Besides, no matter what condition participants are in, they perform better on future related social events. 
+
+
+### does the participants who do not make logical errors under full ranking condition perform better than those who do make logical errors under full ranking condition? 
+### run regression 
+
+
+dt2_full <- dt2 %>% 
+  filter(condition == "full") %>% 
+  group_by(pid) %>%
+  mutate(ave_log_error = mean(logical_err))
+
+
+
+ggplot(dt2_full, aes(x = ave_log_error, y = degree_of_coh, color = event_topic)) + 
+  geom_point() + 
+  geom_smooth(  method=lm) 
+
+m1 <- lm(degree_of_coh ~ ave_log_error + event_topic + ave_log_error:event_topic, dt2_full) 
+summary(m1) ### the coefficient of ave_log_error is significant
+
+
+```
+
+Does the the combination of event types matter
+(For example, are people more likely to make errors (aka. behave against the probability theory) when they are judging "or" events and "and" events. 
+In other words, will the "1" responses for conjunction and disjunction events be less than the "1" responses for marginal and conjunction/disjunction events? )
+
+```{r}
+
+dt2_two <- dt2 %>% 
+  pivot_longer(starts_with("coh_"), names_to = "combination_of_two", values_to = "coherence_two") 
+
+a1_coh_two <- aov_ez("pid", "coherence_two",dt2_two, between = "condition", within = c("combination_of_two", "event_topic"))
+a1_coh_two
+afex_plot(a1_coh_two, "combination_of_two", "condition", "event_topic") ###  the interaction condition:combination_of_two:event_topic is significant
+
+dt2_exclu_two <- dt2_exclude %>% 
+   pivot_longer(starts_with("coh_"), names_to = "combination_of_two", values_to = "coherence_two") 
+
+a2_coh_two <- aov_ez("pid", "coherence_two",dt2_exclu_two, between = "condition", within = c("combination_of_two", "event_topic"))
+a2_coh_two
+afex_plot(a2_coh_two, "combination_of_two", "condition", "event_topic") ###  the interaction condition:combination_of_two:event_topic is not significant
+
+```
+
+Considering the order of the events 
+
+### ？？？
+```{r}
+dt2$marginal_order <- ifelse (dt2$order == "marginal_disjunction_conjunction" | dt2$order ==  "marginal_conjunction_disjunction" , "first", 
+                          ifelse(dt2$order == "disjunction_marginal_conjunction" | dt2$order ==  "conjunction_marginal_disjunction" | dt2$order == "disjunction_conjunction_marginal" | dt2$order ==  "conjunction_disjunction_marginal", "latter",
+                                        "NA"))
+
+dt2 %>% group_by(pid, marginal_order) %>% count()
+
+dt2_exclude$marginal_order <- ifelse (dt2_exclude$order == "marginal_disjunction_conjunction" | dt2_exclude$order ==  "marginal_conjunction_disjunction" , "first", 
+                          ifelse(dt2_exclude$order == "disjunction_marginal_conjunction" | dt2_exclude$order ==  "conjunction_marginal_disjunction" | dt2_exclude$order == "disjunction_conjunction_marginal" | dt2_exclude$order ==  "conjunction_disjunction_marginal", "latter",
+                                        "NA"))
+
+dt2_exclude %>% group_by(pid, marginal_order) %>% count()
+
+
+dt3 <- dt2 %>% filter()
+
+
+```
+
+Question 3: who is more rational? 
+```{r}
+## including logical errors
+
+
+r1 <- lm(degree_of_coh ~ numeracy_score*event_topic*numeracy_score:event_topic*response_time, dt2) 
+summary(r1)
+
+### excluding logical errors 
+r2 <- lm(degree_of_coh ~ numeracy_score*event_topic*numeracy_score:event_topic*response_time, dt2_exclude) 
+summary(r2)
+
+### under full ranking condition 
+r3 <- lm(degree_of_coh ~ numeracy_score*event_topic*ave_log_error*response_time, dt2_full) 
+summary(r3)
+
+
+```
+
+

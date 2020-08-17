@@ -1,0 +1,673 @@
+---
+title: "data_1"
+author: "Xiaotong"
+date: "06/08/2020"
+output: html_document
+---
+```{r}
+#### R preparation
+library("rtdists")
+library("tidyverse")
+library("cowplot")
+library("ggpubr")
+library("emmeans")
+library("lattice")
+library("afex")
+
+```
+
+```{r}
+ranking_data <- read.csv("ranking_data.csv")
+### remove the preview data
+ranking_data <- ranking_data %>% filter(Progress == 100)
+ranking_data <- ranking_data %>% filter(IPAddress != "117.90.40.144")
+
+ranking_data <- ranking_data %>% filter(IPAddress != "62.90.71.208")
+
+```
+
+```{r}
+### Which condition is the participant assigned to?
+### FL_11 -> full ranking condition
+### FL_12 -> pairwise comparison condition 
+
+ranking_data$condition <- ifelse(
+  (
+    ranking_data$FL_4_DO == "FL_11"
+  ),
+  "full",
+  "pair"
+)
+
+ranking_data %>% group_by(condition) %>% count() ### 49 in full condition and 52 in pairwise condition
+
+#### 1. the rate of coherence 
+### add new columns which record the assigned rank for marginal, conjunction and disjunction events under the full condition
+ranking_data$event_set1_marginal<- paste(ranking_data$Q1_1_1, "_", ranking_data$Q1_1_2, "_", ranking_data$Q1_1_3, "_", ranking_data$Q1_1_4)
+ranking_data$event_set1_conjunction <- paste(ranking_data$Q1_2_1, "_", ranking_data$Q1_2_2, "_", ranking_data$Q1_2_3, "_", ranking_data$Q1_2_4)
+ranking_data$event_set1_disjunction <- paste(ranking_data$Q1_3_1, "_", ranking_data$Q1_3_2, "_", ranking_data$Q1_3_3, "_", ranking_data$Q1_3_4)
+
+ranking_data$event_set1_order <- ifelse (ranking_data$Full1_DO ==  "Q1_1|Q1_2|Q1_3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$Full1_DO == "Q1_1|Q1_3|Q1_2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$Full1_DO == "Q1_2|Q1_1|Q1_3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$Full1_DO == "Q1_2|Q1_3|Q1_1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$Full1_DO == "Q1_3|Q1_2|Q1_1", 'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$Full1_DO == "Q1_3|Q1_1|Q1_2", 'disjunction_marginal_conjunction',
+                                                                             "-"))))))
+
+#######------------
+ranking_data$event_set2_marginal <- paste(ranking_data$Q2_1_1, "_", ranking_data$Q2_1_2, "_", ranking_data$Q2_1_3, "_", ranking_data$Q2_1_4)
+ranking_data$event_set2_conjunction <- paste(ranking_data$Q2_2_1, "_", ranking_data$Q2_2_2, "_", ranking_data$Q2_2_3, "_", ranking_data$Q2_2_4)
+ranking_data$event_set2_disjunction <- paste(ranking_data$Q2_3_1, "_", ranking_data$Q2_3_2, "_", ranking_data$Q2_3_3, "_", ranking_data$Q2_3_4)
+
+ranking_data$event_set2_order <- ifelse (ranking_data$Full2_DO ==  "Q2_1|Q2_2|Q2_3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$Full2_DO == "Q2_1|Q2_3|Q2_2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$Full2_DO == "Q2_2|Q2_1|Q2_3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$Full2_DO == "Q2_2|Q2_3|Q2_1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$Full2_DO == "Q2_3|Q2_2|Q2_1", 'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$Full2_DO == "Q2_3|Q2_1|Q2_2", 'disjunction_marginal_conjunction',
+                                                                             "-"))))))
+
+
+########-----------------
+ranking_data$event_set2_marginal <- paste(ranking_data$Q2_1_1, "_", ranking_data$Q2_1_2, "_", ranking_data$Q2_1_3, "_", ranking_data$Q2_1_4)
+ranking_data$event_set2_conjunction <- paste(ranking_data$Q2_2_1, "_", ranking_data$Q2_2_2, "_", ranking_data$Q2_2_3, "_", ranking_data$Q2_2_4)
+ranking_data$event_set2_disjunction <- paste(ranking_data$Q2_3_1, "_", ranking_data$Q2_3_2, "_", ranking_data$Q2_3_3, "_", ranking_data$Q2_3_4)
+
+ranking_data$event_set2_order <- ifelse (ranking_data$Full2_DO ==  "Q2_1|Q2_2|Q2_3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$Full2_DO == "Q2_1|Q2_3|Q2_2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$Full2_DO == "Q2_2|Q2_1|Q2_3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$Full2_DO == "Q2_2|Q2_3|Q2_1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$Full2_DO == "Q2_3|Q2_2|Q2_1", 'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$Full2_DO == "Q2_3|Q2_1|Q2_2", 'disjunction_marginal_conjunction',
+                                                                             "-"))))))
+
+##########---------------
+ranking_data$event_set3_marginal <- paste(ranking_data$Q3_1_1, "_", ranking_data$Q3_1_2, "_", ranking_data$Q3_1_3, "_", ranking_data$Q3_1_4)
+ranking_data$event_set3_conjunction <- paste(ranking_data$Q3_2_1, "_", ranking_data$Q3_2_2, "_", ranking_data$Q3_2_5, "_", ranking_data$Q3_2_7)
+ranking_data$event_set3_disjunction <- paste(ranking_data$Q3_3_1, "_", ranking_data$Q3_3_2, "_", ranking_data$Q3_3_3, "_", ranking_data$Q3_3_5)
+
+ranking_data$event_set3_order <- ifelse (ranking_data$Full3_DO ==  "Q3_1|Q3_2|Q3_3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$Full3_DO == "Q3_1|Q3_3|Q3_2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$Full3_DO == "Q3_2|Q3_1|Q3_3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$Full3_DO == "Q3_2|Q3_3|Q3_1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$Full3_DO == "Q3_3|Q3_2|Q3_1", 'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$Full3_DO == "Q3_3|Q3_1|Q3_2", 'disjunction_marginal_conjunction',
+                                                                             "-"))))))
+
+##########-------------
+ranking_data$event_set4_marginal <- paste(ranking_data$Q4_1_1, "_", ranking_data$Q4_1_2, "_", ranking_data$Q4_1_3, "_", ranking_data$Q4_1_4)
+ranking_data$event_set4_conjunction <- paste(ranking_data$Q4_2_1, "_", ranking_data$Q4_2_2, "_", ranking_data$Q4_2_6, "_", ranking_data$Q4_2_7)
+ranking_data$event_set4_disjunction <- paste(ranking_data$Q4_3_1, "_", ranking_data$Q4_3_2, "_", ranking_data$Q4_3_3, "_", ranking_data$Q4_3_4)
+
+ranking_data$event_set4_order <- ifelse (ranking_data$Full4_DO ==  "Q4_1|Q4_2|Q4_3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$Full4_DO == "Q4_1|Q4_3|Q4_2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$Full4_DO == "Q4_2|Q4_1|Q4_3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$Full4_DO == "Q4_2|Q4_3|Q4_1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$Full4_DO == "Q4_3|Q4_2|Q4_1", 'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$Full4_DO == "Q4_3|Q4_1|Q4_2", 'disjunction_marginal_conjunction',
+                                                                             "-"))))))
+
+##########---------------
+ranking_data$event_set5_marginal <-  "_"
+ranking_data$event_set5_conjunction <-  "_"
+ranking_data$event_set5_disjunction <-  "_"
+
+ranking_data$event_set5_order <- "-"
+
+############------------
+ranking_data$event_set6_marginal <- paste(ranking_data$Q6_1_1, "_", ranking_data$Q6_1_2, "_", ranking_data$Q6_1_3, "_", ranking_data$Q6_1_4)
+ranking_data$event_set6_conjunction <- paste(ranking_data$Q6_2_1, "_", ranking_data$Q6_2_2, "_", ranking_data$Q6_2_3, "_", ranking_data$Q6_2_4)
+ranking_data$event_set6_disjunction <- paste(ranking_data$Q6_3_1, "_", ranking_data$Q6_3_2, "_", ranking_data$Q6_3_3, "_", ranking_data$Q6_3_4)
+
+ranking_data$event_set6_order <- ifelse (ranking_data$Full6_DO ==  "Q6_1|Q6_2|Q6_3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$Full6_DO == "Q6_1|Q6_3|Q6_2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$Full6_DO == "Q6_2|Q6_1|Q6_3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$Full6_DO == "Q6_2|Q6_3|Q6_1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$Full6_DO == "Q6_3|Q6_2|Q6_1", 'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$Full6_DO == "Q6_3|Q6_1|Q6_2", 'disjunction_marginal_conjunction',
+                                                                             "-"))))))
+
+############--------------
+ranking_data$event_set7_marginal <- paste(ranking_data$Q7_1_1, "_", ranking_data$Q7_1_2, "_", ranking_data$Q7_1_3, "_", ranking_data$Q7_1_4)
+ranking_data$event_set7_conjunction <- paste(ranking_data$Q7_2_1, "_", ranking_data$Q7_2_2, "_", ranking_data$Q7_2_10, "_", ranking_data$Q7_2_12)
+ranking_data$event_set7_disjunction <- paste(ranking_data$Q7_3_1, "_", ranking_data$Q7_3_2, "_", ranking_data$Q7_3_3, "_", ranking_data$Q7_3_4)
+
+ranking_data$event_set7_order <- ifelse (ranking_data$Full7_DO ==  "Q7_1|Q7_2|Q7_3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$Full7_DO == "Q7_1|Q7_3|Q7_2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$Full7_DO == "Q7_2|Q7_1|Q7_3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$Full7_DO == "Q7_2|Q7_3|Q7_1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$Full7_DO == "Q7_3|Q7_2|Q7_1", 'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$Full7_DO == "Q7_3|Q7_1|Q7_2", 'disjunction_marginal_conjunction',
+                                                                             "-"))))))
+
+###########----------------
+ranking_data$event_set8_marginal <- paste(ranking_data$Q8_1_1, "_", ranking_data$Q8_1_2, "_", ranking_data$Q8_1_3, "_", ranking_data$Q8_1_4)
+ranking_data$event_set8_conjunction <- paste(ranking_data$Q8_2_1, "_", ranking_data$Q8_2_13, "_", ranking_data$Q8_2_14, "_", ranking_data$Q8_2_15)
+ranking_data$event_set8_disjunction <- paste(ranking_data$Q8_3_1, "_", ranking_data$Q8_3_2, "_", ranking_data$Q8_3_3, "_", ranking_data$Q8_3_4)
+
+ranking_data$event_set8_order <- ifelse (ranking_data$Full8_DO ==  "Q8_1|Q8_2|Q8_3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$Full8_DO == "Q8_1|Q8_3|Q8_2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$Full8_DO == "Q8_2|Q8_1|Q8_3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$Full8_DO == "Q8_2|Q8_3|Q8_1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$Full8_DO == "Q8_3|Q8_2|Q8_1", 'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$Full8_DO == "Q8_3|Q8_1|Q8_2", 'disjunction_marginal_conjunction',
+                                                                             "-"))))))
+  
+
+  
+```
+
+
+```{r}
+### add new columns which record the assigned rank for marginal, conjunction and disjunction events under the pairwise comparison condition
+### step 1: calculate the rank for marginal event sets 
+### event set 1
+
+ranking_data$P1_3.4
+ranking_data$P1_marginal_1 <- ifelse(ranking_data$P1_1 == ranking_data$P1_1[1] &  (ranking_data$P1_3.1 == ranking_data$P1_3.1[6] | ranking_data$P1_3.2 == ranking_data$P1_3.2[15]), '1', 
+                                     ifelse(ranking_data$P1_1 == ranking_data$P1_1[1] & 
+                                              (ranking_data$P1_3.1 != ranking_data$P1_3.1[6] & ranking_data$P1_3.2 != ranking_data$P1_3.2[15]), '2',
+                                            ifelse(ranking_data$P1_1 == ranking_data$P1_1[12] & 
+                                                     (ranking_data$P1_3.3 == ranking_data$P1_3.3[67] | ranking_data$P1_3.4 == ranking_data$P1_3.4[85]), '4',
+                                                   ifelse(ranking_data$P1_1 == ranking_data$P1_1[12] & 
+                                                     (ranking_data$P1_3.3 != ranking_data$P1_3.3[67] & ranking_data$P1_3.4 != ranking_data$P1_3.4[85]), '3',
+                                                     "-"))))
+                                                     
+                                                    
+
+ranking_data$P1_marginal_1 <- ranking_data$P1_marginal_1 %>% as.numeric()
+
+
+
+ranking_data$P1_marginal_2 <- ifelse(ranking_data$P1_marginal_1 != "NA",  (5 - ranking_data$P1_marginal_1),
+                                     "NA")
+
+
+
+ranking_data$P1_marginal_3 <- ifelse(ranking_data$P1_2 == ranking_data$P1_2[1] & (ranking_data$P1_3.1 == ranking_data$P1_3.1[1] | ranking_data$P1_3.3 == ranking_data$P1_3.3[12]), '1',
+                                     ifelse(ranking_data$P1_2 == ranking_data$P1_2[1] & (ranking_data$P1_3.1 != ranking_data$P1_3.1[1] & ranking_data$P1_3.3 != ranking_data$P1_3.3[12]), '2',
+                                            ifelse(ranking_data$P1_2 == ranking_data$P1_2[13] & (ranking_data$P1_3.2 == ranking_data$P1_3.2[50] | ranking_data$P1_3.4 == ranking_data$P1_3.4[13]), '4',
+                                                   ifelse(ranking_data$P1_2 == ranking_data$P1_2[13] & (ranking_data$P1_3.2 != ranking_data$P1_3.2[50] & ranking_data$P1_3.4 != ranking_data$P1_3.4[13]), '3',
+                                                          "-" ))))
+
+
+ranking_data$P1_marginal_3 <- ranking_data$P1_marginal_3 %>% as.numeric()
+
+
+ranking_data$P1_marginal_3 [ranking_data$PROLIFIC_PID == "5f225b3a4154037134135f6e"]
+
+ranking_data$P1_marginal_4 <- ifelse(ranking_data$P1_marginal_3 != "NA", (5-ranking_data$P1_marginal_3),
+                                     "NA")
+
+### step 2
+ranking_data$event_set1_marginal<- ifelse(ranking_data$condition == "pair", paste(ranking_data$P1_marginal_1, "_", ranking_data$P1_marginal_2, "_", ranking_data$P1_marginal_3, "_", ranking_data$P1_marginal_4),
+                                          ranking_data$event_set1_marginal)
+
+ranking_data$event_set1_conjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$p1_4_1, "_", ranking_data$p1_4_2, "_", 
+                                                                                      ranking_data$p1_4_3, "_", ranking_data$p1_4_4),
+                                              ranking_data$event_set1_conjunction)
+
+ranking_data$event_set1_disjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P1_5_1, "_", ranking_data$P1_5_2, "_",
+                                                                                      ranking_data$P1_5_3, "_", ranking_data$P1_5_4),
+                                              ranking_data$event_set1_disjunction)
+
+ranking_data$event_set1_order <- ifelse (ranking_data$FL_15_DO ==  "Pair1.1|Pair1.2|Pair1.3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$FL_15_DO == "Pair1.1|Pair1.3|Pair1.2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$FL_15_DO == "Pair1.2|Pair1.1|Pair1.3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$FL_15_DO == "Pair1.2|Pair1.3|Pair1.1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$FL_15_DO == "Pair1.3|Pair1.2|Pair1.1",
+                                                                      'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$FL_15_DO == "Pair1.3|Pair1.1|Pair1.2",
+                                                                             'disjunction_marginal_conjunction',
+                                                                             ranking_data$event_set1_order))))))
+
+
+```
+
+```{r}
+###event set 2
+
+ranking_data$P2_marginal_1 <- ifelse(ranking_data$P2_1 == "On a random day in England, it will be windy." & (ranking_data$P2_3.1 == "On a random day in England, it will be windy." | ranking_data$P2_3.2 == "On a random day in England, it will be windy." | ranking_data$P2_3.3 == "On a random day in England, it will be windy." | ranking_data$P2_3.4 == "On a random day in England, it will be windy."), '1', 
+                                     ifelse(ranking_data$P2_1 == "On a random day in England, it will be windy." & (ranking_data$P2_3.1 != "On a random day in England, it will be windy." & ranking_data$P2_3.2 != "On a random day in England, it will be windy." & ranking_data$P2_3.3 != "On a random day in England, it will be windy." & ranking_data$P2_3.4 != "On a random day in England, it will be windy."), '2',
+                                            ifelse(ranking_data$P2_1 == "On a random day in England, it will not be windy." & (ranking_data$P2_3.1 == "On a random day in England, it will not be windy." | ranking_data$P2_3.2 == "On a random day in England, it will not be windy." | ranking_data$P2_3.3 == "On a random day in England, it will not be windy." | ranking_data$P2_3.4 == "On a random day in England, it will not be windy."), '4',
+                                                   ifelse(ranking_data$P2_1 == "On a random day in England, it will not be windy." & (ranking_data$P2_3.1 != "On a random day in England, it will not be windy." & ranking_data$P2_3.2 != "On a random day in England, it will not be windy." & ranking_data$P2_3.3 != "On a random day in England, it will not be windy." & ranking_data$P2_3.4 != "On a random day in England, it will not be windy."), '3',
+                                                          '-'))))
+
+ranking_data$P2_marginal_1 <- ranking_data$P2_marginal_1 %>% as.numeric()
+
+
+
+ranking_data$P2_marginal_2 <- ifelse(ranking_data$P2_marginal_1 != "NA",  (5 - ranking_data$P2_marginal_1),
+                                     "NA")
+
+
+ranking_data$P2_marginal_3 <- ifelse(ranking_data$P2_2 == "On a random day in England, it will be freezing." & (ranking_data$P2_3.1 == "On a random day in England, it will be freezing." | ranking_data$P2_3.2 == "On a random day in England, it will be freezing." | ranking_data$P2_3.3 == "On a random day in England, it will be freezing." | ranking_data$P2_3.4 == "On a random day in England, it will be freezing."), '1', 
+                                     ifelse(ranking_data$P2_2 == "On a random day in England, it will be freezing." & (ranking_data$P2_3.1 != "On a random day in England, it will be freezing." & ranking_data$P2_3.2 != "On a random day in England, it will be freezing." & ranking_data$P2_3.3 != "On a random day in England, it will be freezing." & ranking_data$P2_3.4 != "On a random day in England, it will be freezing."), '2',
+                                            ifelse(ranking_data$P2_2 == "On a random day in England, it will not be freezing." & (ranking_data$P2_3.1 == "On a random day in England, it will not be freezing." | ranking_data$P2_3.2 == "On a random day in England, it will not be freezing." | ranking_data$P2_3.3 == "On a random day in England, it will not be freezing." | ranking_data$P2_3.4 == "On a random day in England, it will not be freezing."), '4',
+                                                   ifelse(ranking_data$P2_2 == "On a random day in England, it will not be freezing." & (ranking_data$P2_3.1 != "On a random day in England, it will not be freezing." & ranking_data$P2_3.2 != "On a random day in England, it will not be freezing" & ranking_data$P2_3.3 != "On a random day in England, it will not be freezing." & ranking_data$P2_3.4 != "On a random day in England, it will not be freezing."), '3',
+                                                                        "-"))))
+
+
+
+
+ranking_data$P2_marginal_3 <- ranking_data$P2_marginal_3 %>% as.numeric()
+
+
+ranking_data$P2_marginal_4 <- ifelse(ranking_data$P2_marginal_3 != "NA", (5-ranking_data$P2_marginal_3),
+                                     "NA")
+
+#### step 2
+ranking_data$event_set2_marginal<- ifelse(ranking_data$condition == "pair", paste(ranking_data$P2_marginal_1, "_", ranking_data$P2_marginal_2, "_", 
+                                                                                  ranking_data$P2_marginal_3, "_", ranking_data$P2_marginal_4),
+                                          ranking_data$event_set2_marginal)
+
+ranking_data$event_set2_conjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P2.4_1, "_", ranking_data$P2.4_2, "_", 
+                                                                                      ranking_data$P2.4_3, "_", ranking_data$P2.4_4),
+                                              ranking_data$event_set2_conjunction)
+
+ranking_data$event_set2_disjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P2.5_1, "_", ranking_data$P2.5_2, "_",
+                                                                                      ranking_data$P2.5_3, "_", ranking_data$P2.5_4),
+                                              ranking_data$event_set2_disjunction)
+
+ranking_data$event_set2_order <- ifelse (ranking_data$FL_16_DO ==  "Pair2.1|Pair2.2|Pair2.3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$FL_16_DO == "Pair2.1|Pair2.3|Pair2.2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$FL_16_DO == "Pair2.2|Pair2.1|Pair2.3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$FL_16_DO == "Pair2.2|Pair2.3|Pair2.1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$FL_16_DO == "Pair2.3|Pair2.2|Pair2.1",
+                                                                      'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$FL_16_DO == "Pair2.3|Pair2.1|Pair2.2",
+                                                                             'disjunction_marginal_conjunction',
+                                                                             ranking_data$event_set2_order))))))
+
+
+
+
+```
+
+```{r}
+##### event set 3
+### step 1
+ranking_data$P3_marginal_1 <- ifelse(ranking_data$P3_1 == "On a random day in England, it will be icy." & (ranking_data$P3_3.1 == "On a random day in England, it will be icy." | ranking_data$P3_3.3 == "On a random day in England, it will be icy." | ranking_data$P3_3.2 == "On a random day in England, it will be icy." | ranking_data$P3_3.4 == "On a random day in England, it will be icy."), '1', 
+                                     ifelse(ranking_data$P3_1 == "On a random day in England, it will be icy." & (ranking_data$P3_3.1 != "On a random day in England, it will be icy." & ranking_data$P3_3.3 != "On a random day in England, it will be icy." & ranking_data$P3_3.2 != "On a random day in England, it will be icy." & ranking_data$P3_3.4 != "On a random day in England, it will be icy."), '2',
+                                            ifelse(ranking_data$P3_1 == "On a random day in England, it will not be icy." & (ranking_data$P3_3.1 == "On a random day in England, it will not be icy." | ranking_data$P3_3.3 == "On a random day in England, it will not be icy." | ranking_data$P3_3.2 == "On a random day in England, it will not be icy." | ranking_data$P3_3.4 == "On a random day in England, it will not be icy."), '4',
+                                                   ifelse(ranking_data$P3_1 == "On a random day in England, it will not be icy." & (ranking_data$P3_3.1 != "On a random day in England, it will not be icy." & ranking_data$P3_3.3 != "On a random day in England, it will not be icy." & ranking_data$P3_3.2 != "On a random day in England, it will not be icy." & ranking_data$P3_3.4 != "On a random day in England, it will not be icy."), '3',
+                                                          '-'))))
+
+ranking_data$P3_marginal_1 <- ranking_data$P3_marginal_1 %>% as.numeric()
+
+
+
+ranking_data$P3_marginal_2 <- ifelse(ranking_data$P3_marginal_1 != "NA",  (5 - ranking_data$P3_marginal_1),
+                                     "NA")
+
+ranking_data$P3_marginal_3 <- ifelse(ranking_data$P3_2 == "On a random day in England, it will be frosty." & (ranking_data$P3_3.1 == "On a random day in England, it will be frosty." | ranking_data$P3_3.3 == "On a random day in England, it will be frosty." | ranking_data$P3_3.2 == "On a randomly day in England, it will be frosty." | ranking_data$P3_3.4 == "On a random day in England, it will be frosty."), '1', 
+                                     ifelse(ranking_data$P3_2 == "On a random day in England, it will be frosty." & (ranking_data$P3_3.1 != "On a random day in England, it will be frosty." & ranking_data$P3_3.3 != "On a random day in England, it will be frosty." & ranking_data$P3_3.2 != "On a randomly day in England, it will be frosty." & ranking_data$P3_3.4 != "On a random day in England, it will be frosty."), '2',
+                                            ifelse(ranking_data$P3_2 == "On a random day in England, it will not be frosty." & (ranking_data$P3_3.1 == "On a random day in England, it will not be frosty." | ranking_data$P3_3.3 == "On a random day in England, it will not be frosty." | ranking_data$P3_3.2 == "On a random day in England, it will not be frosty." | ranking_data$P3_3.4 == "On a random day in England, it will not be frosty."), '4',
+                                                   ifelse(ranking_data$P3_2 == "On a random day in England, it will not be frosty." & (ranking_data$P3_3.1 != "On a random day in England, it will not be frosty." & ranking_data$P3_3.3 != "On a random day in England, it will not be frosty" & ranking_data$P3_3.2 != "On a random day in England, it will not be frosty." & ranking_data$P3_3.4 != "On a random day in England, it will not be frosty."), '3',
+                                                          "-"))))
+
+ranking_data$P3_marginal_3 <- ranking_data$P3_marginal_3 %>% as.numeric()
+
+
+ranking_data$P3_marginal_4 <- ifelse(ranking_data$P3_marginal_3 != "NA", (5-ranking_data$P3_marginal_3),
+                                     "NA")
+#### step 2
+ranking_data$event_set3_marginal<- ifelse(ranking_data$condition == "pair", paste(ranking_data$P3_marginal_1, "_", ranking_data$P3_marginal_2, "_", 
+                                                                                  ranking_data$P3_marginal_3, "_", ranking_data$P3_marginal_4),
+                                          ranking_data$event_set3_marginal)
+
+ranking_data$event_set3_conjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P3_4_1, "_", ranking_data$P3_4_2, "_", 
+                                                                                      ranking_data$P3_4_3, "_", ranking_data$P3_4_4),
+                                              ranking_data$event_set3_conjunction)
+
+ranking_data$event_set3_disjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P3_5_1, "_", ranking_data$P3_5_2, "_",
+                                                                                      ranking_data$P3_5_3, "_", ranking_data$P3_5_4),
+                                              ranking_data$event_set3_disjunction)
+
+
+ranking_data$event_set3_order <- ifelse (ranking_data$FL_17_DO ==  "Pair3.1|Pair3.2|Pair3.3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$FL_17_DO == "Pair3.1|Pair3.3|Pair3.2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$FL_17_DO == "Pair3.2|Pair3.1|Pair3.3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$FL_17_DO == "Pair3.2|Pair3.3|Pair3.1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$FL_17_DO == "Pair3.3|Pair3.2|Pair3.1",
+                                                                      'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$FL_17_DO == "Pair3.3|Pair3.1|Pair3.2",
+                                                                             'disjunction_marginal_conjunction',
+                                                                             ranking_data$event_set3_order))))))
+
+
+```
+
+
+```{r}
+##### event set 4
+##### step 1
+ranking_data$P4_marginal_1 <- ifelse(ranking_data$P4_1 == "On a random day in England, it will be cloudy." & (ranking_data$P4_3.1 == "On a random day in England, it will be cloudy." | ranking_data$P4_3.2 == "On a random day in England, it will be cloudy." | ranking_data$P4_3.3 == "On a random day in England, it will be cloudy." | ranking_data$P4_3.4 == "On a random day in England, it will be cloudy."), '1', 
+                                     ifelse(ranking_data$P4_1 == "On a random day in England, it will be cloudy." & (ranking_data$P4_3.1 != "On a random day in England, it will be cloudy." & ranking_data$P4_3.2 != "On a random day in England, it will be cloudy." & ranking_data$P4_3.3 != "On a random day in England, it will be cloudy." & ranking_data$P4_3.4 != "On a random day in England, it will be cloudy."), '2',
+                                            ifelse(ranking_data$P4_1 == "On a random day in England, it will not be cloudy." & (ranking_data$P4_3.1 == "On a random day in England, it will not be cloudy." | ranking_data$P4_3.2 == "On a random day in England, it will not be cloudy." | ranking_data$P4_3.3 == "On a random day in England, it will not be cloudy." | ranking_data$P4_3.4 == "On a random day in England, it will not be cloudy."), '4',
+                                                   ifelse(ranking_data$P4_1 == "On a random day in England, it will not be cloudy." & (ranking_data$P4_3.1 != "On a random day in England, it will not be cloudy." & ranking_data$P4_3.2 != "On a random day in England, it will not be cloudy." & ranking_data$P4_3.3 != "On a random day in England, it will not be cloudy." & ranking_data$P4_3.4 != "On a random day in England, it will not be cloudy."), '3',
+                                                          '-'))))
+
+ranking_data$P4_marginal_1 <- ranking_data$P4_marginal_1 %>% as.numeric()
+
+ranking_data$P4_marginal_2 <- ifelse(ranking_data$P4_marginal_1 != "NA",  (5 - ranking_data$P4_marginal_1),
+                                     "NA")
+
+ranking_data$P4_marginal_3 <- ifelse(ranking_data$P4_2 == "On a random day in England it will be warm." & (ranking_data$P4_3.1 == "On a random day in England, it will be warm." | ranking_data$P4_3.2 == "On a random day in England, it will be warm." | ranking_data$P4_3.3 == "On a random day in England, it will be warm." | ranking_data$P4_3.4 == "On a random day in England, it will be warm."), '1', 
+                                     ifelse(ranking_data$P4_2 == "On a random day in England it will be warm." & (ranking_data$P4_3.1 != "On a random day in England, it will be warm." & ranking_data$P4_3.2 != "On a random day in England, it will be warm." & ranking_data$P4_3.3 != "On a random day in England, it will be warm." & ranking_data$P4_3.4 != "On a random day in England, it will be warm."), '2',
+                                            ifelse(ranking_data$P4_2 == "On a random day in England, it will not be warm." & (ranking_data$P4_3.1 == "On a random day in England, it will not  be warm." | ranking_data$P4_3.2 == "On a random day in England, it will not  be warm." | ranking_data$P4_3.3 == "On a random day in England, it will not  be warm." | ranking_data$P4_3.4 == "On a random day in England, it will not  be warm."), '4',
+                                                   ifelse(ranking_data$P4_2 == "On a random day in England, it will not be warm." & (ranking_data$P4_3.1 != "On a random day in England, it will not  be warm." & ranking_data$P4_3.2 != "On a random day in England, it will not  be warm." & ranking_data$P4_3.3 != "On a random day in England, it will not  be warm." & ranking_data$P4_3.4 != "On a random day in England, it will not  be warm."), '3',
+                                                          "-"))))
+
+ranking_data$P4_marginal_3 <- ranking_data$P4_marginal_3 %>% as.numeric()
+
+
+ranking_data$P4_marginal_4 <- ifelse(ranking_data$P4_marginal_3 != "NA", (5-ranking_data$P4_marginal_3),
+                                     "NA")
+
+#### step 2
+ranking_data$event_set4_marginal<- ifelse(ranking_data$condition == "pair", paste(ranking_data$P4_marginal_1, "_", ranking_data$P4_marginal_2, "_", 
+                                                                                  ranking_data$P4_marginal_3, "_", ranking_data$P4_marginal_4),
+                                          ranking_data$event_set4_marginal)
+
+ranking_data$event_set4_conjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P4_4_1, "_", ranking_data$P4_4_2, "_", 
+                                                                                      ranking_data$P4_4_3, "_", ranking_data$P4_4_4),
+                                              ranking_data$event_set4_conjunction)
+
+ranking_data$event_set4_disjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P4_5_1, "_", ranking_data$P4_5_2, "_",
+                                                                                      ranking_data$P4_5_3, "_", ranking_data$P4_5_4),
+                                              ranking_data$event_set4_disjunction)
+
+
+
+ranking_data$event_set4_order <- ifelse (ranking_data$FL_18_DO ==  "Pair4.1|Pair4.2|Pair4.3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$FL_18_DO == "Pair4.1|Pair4.3|Pair4.2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$FL_18_DO == "Pair4.2|Pair4.1|Pair4.3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$FL_18_DO == "Pair4.2|Pair4.3|Pair4.1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$FL_18_DO == "Pair4.3|Pair4.2|Pair4.1",
+                                                                      'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$FL_18_DO == "Pair4.3|Pair4.1|Pair4.2",
+                                                                             'disjunction_marginal_conjunction',
+                                                                             ranking_data$event_set4_order))))))
+
+```
+
+```{r}
+######### event set 5
+######## step 1
+
+ranking_data$P5_marginal_1 <- ifelse( ranking_data$P5_1 == "World population will grow at a slower pace in the next 5 years compared to the past 5 years." & (ranking_data$P5_3.1 == "World population will grow at a slower pace in the next 5 years compared to the past 5 years." | ranking_data$P5_3.2 == "World population will grow at a slower pace in the next 5 years compared to the past 5 years." | ranking_data$P5_3.3 == "World population will grow at a slower pace in the next 5 years compared to the past 5 years." ), '1',
+                                      ifelse(ranking_data$P5_1 == "World population will not grow at a slower pace in the next 5 years compared to the past 5 years." & ( ranking_data$P5_3.3 != "World greenhouse emission will decrease in the next 5 years compared to the past 5 years." & ranking_data$P5_3.4 != "World greenhouse emission will not decrease in the next 5 years compared to the past 5 years."), '4',
+                                              ifelse(ranking_data$P5_1 == "World population will grow at a slower pace in the next 5 years compared to the past 5 years." & (ranking_data$P5_3.1 != "World population will grow at a slower pace in the next 5 years compared to the past 5 years." & ranking_data$P5_3.2 != "World population will grow at a slower pace in the next 5 years compared to the past 5 years." & ranking_data$P5_3.3 != "World population will grow at a slower pace in the next 5 years compared to the past 5 years." & ranking_data$P5_3.4 != "World population will grow at a slower pace in the next 5 years compared to the past 5 years."), '2',
+                                                      ifelse(ranking_data$P5_1 != "World population will grow at a slower pace in the next 5 years compared to the past 5 years." & ( ranking_data$P5_3.3 == "World greenhouse emission will decrease in the next 5 years compared to the past 5 years." | ranking_data$P5_3.4 == "World greenhouse emission will not decrease in the next 5 years compared to the past 5 years."), '3',
+                                                             '-'))))
+
+
+ranking_data$P5_marginal_1 <- ranking_data$P5_marginal_1 %>% as.numeric()
+
+ranking_data$P5_marginal_2 <- ifelse(ranking_data$P5_marginal_1 != "NA",  (5 - ranking_data$P5_marginal_1),
+                                     "NA")
+
+ranking_data$P5_marginal_3 <- ifelse(ranking_data$P5_2 == "World greenhouse emission will decrease in the next 5 years compared to the past 5 years." & (ranking_data$P5_3.1 == "World greenhouse emission will decrease in the next 5 years compared to the past 5 years." | ranking_data$P5_3.2 == "World greenhouse emission will decrease in the next 5 years compared to the past 5 years." | ranking_data$P5_3.3 == "World greenhouse emission will decrease in the next 5 years compared to the past 5 years." | ranking_data$P5_3.4 == "World greenhouse emission will decrease in the next 5 years compared to the past 5 years."), '1', 
+                                     ifelse(ranking_data$P5_2 == "World greenhouse emission will decrease in the next 5 years compared to the past 5 years." & (ranking_data$P5_3.1 != "World greenhouse emission will decrease in the next 5 years compared to the past 5 years." & ranking_data$P5_3.2 != "World greenhouse emission will decrease in the next 5 years compared to the past 5 years." & ranking_data$P5_3.3 != "World greenhouse emission will decrease in the next 5 years compared to the past 5 years." & ranking_data$P5_3.4 != "World greenhouse emission will decrease in the next 5 years compared to the past 5 years."), '2',
+                                            ifelse(ranking_data$P5_2 == "World greenhouse emission will not decrease in the next 5 years compared to the past 5 years." & (ranking_data$P5_3.1 == "World greenhouse emission will not decrease in the next 5 years compared to the past 5 years." | ranking_data$P5_3.2 == "World greenhouse emission will not decrease in the next 5 years compared to the past 5 years." | ranking_data$P5_3.3 == "World greenhouse emission will not decrease in the next 5 years compared to the past 5 years." | ranking_data$P5_3.4 == "World greenhouse emission will not decrease in the next 5 years compared to the past 5 years."), '4',
+                                                   ifelse(ranking_data$P5_2 == "World greenhouse emission will not decrease in the next 5 years compared to the past 5 years." & (ranking_data$P5_3.1 != "World greenhouse emission will not decrease in the next 5 years compared to the past 5 years." & ranking_data$P5_3.2 != "On a random day in England, it will not be freezing" & ranking_data$P5_3.3 != "World greenhouse emission will not decrease in the next 5 years compared to the past 5 years." & ranking_data$P5_3.4 != "World greenhouse emission will not decrease in the next 5 years compared to the past 5 years."), '3',
+                                                          "-"))))
+
+ranking_data$P5_marginal_3 <- ranking_data$P5_marginal_3 %>% as.numeric()
+
+
+ranking_data$P5_marginal_4 <- ifelse(ranking_data$P5_marginal_3 != "NA", (5-ranking_data$P5_marginal_3),
+                                     "NA")
+
+#### step 2
+ranking_data$event_set5_marginal<- ifelse(ranking_data$condition == "pair", paste(ranking_data$P5_marginal_1, "_", ranking_data$P5_marginal_2, "_", 
+                                                                                  ranking_data$P5_marginal_3, "_", ranking_data$P5_marginal_4),
+                                          ranking_data$event_set5_marginal)
+
+ranking_data$event_set5_conjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P5_4_1, "_", ranking_data$P5_4_2, "_", 
+                                                                                      ranking_data$P5_4_3, "_", ranking_data$P5_4_4),
+                                              ranking_data$event_set5_conjunction)
+
+ranking_data$event_set5_disjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P5_5_1, "_", ranking_data$P5_5_2, "_",
+                                                                                      ranking_data$P5_5_3, "_", ranking_data$P5_5_4),
+                                              ranking_data$event_set5_disjunction)
+
+ranking_data$event_set5_order <- ifelse (ranking_data$FL_74_DO ==  "Pair5.1|Pair5.2|Pair5.3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$FL_74_DO == "Pair5.1|Pair5.3|Pair5.2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$FL_74_DO == "Pair5.2|Pair5.1|Pair5.3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$FL_74_DO == "Pair5.2|Pair5.3|Pair5.1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$FL_74_DO == "Pair5.3|Pair5.2|Pair5.1",
+                                                                      'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$FL_74_DO == "Pair5.3|Pair5.1|Pair5.2",
+                                                                             'disjunction_marginal_conjunction',
+                                                                             ranking_data$event_set5_order))))))
+
+
+
+
+```
+
+```{r}
+########## event set 6
+######### step 1
+
+ranking_data$P6_marginal_1 <- ifelse(ranking_data$P6_1 == "Bill Gates will one day become the president of the United States of America." & (ranking_data$P6_3.1 == "Bill Gates will one day become the president of the United States of America." | ranking_data$P6_3.2 == "Bill Gates will one day become the president of the United States of America." | ranking_data$P6_3.3 == "Bill Gates will one day become the president of the United States of America." | ranking_data$P6_3.4 == "Bill Gates will one day become the president of the United States of America."), '1', 
+                                     ifelse(ranking_data$P6_1 == "Bill Gates will one day become the president of the United States of America." & (ranking_data$P6_3.1 != "Bill Gates will one day become the president of the United States of America." & ranking_data$P6_3.2 != "Bill Gates will one day become the president of the United States of America." & ranking_data$P6_3.3 != "Bill Gates will one day become the president of the United States of America." & ranking_data$P6_3.4 != "Bill Gates will one day become the president of the United States of America."), '2',
+                                            ifelse(ranking_data$P6_1 == "Bill Gates will not  become the president of the United States of America." & (ranking_data$P6_3.1 == "Bill Gates will not  become the president of the United States of America." | ranking_data$P6_3.2 == "Bill Gates will not  become the president of the United States of America." | ranking_data$P6_3.3 == "Bill Gates will not  become the president of the United States of America." | ranking_data$P6_3.4 == "Bill Gates will not  become the president of the United States of America."), '4',
+                                                   ifelse(ranking_data$P6_1 == "Bill Gates will not  become the president of the United States of America." & (ranking_data$P6_3.1 != "Bill Gates will not  become the president of the United States of America." & ranking_data$P6_3.2 != "Bill Gates will not  become the president of the United States of America." & ranking_data$P6_3.3 != "Bill Gates will not  become the president of the United States of America." & ranking_data$P6_3.4 != "Bill Gates will not  become the president of the United States of America."), '3',
+                                                          '-'))))
+
+ranking_data$P6_marginal_1 <- ranking_data$P6_marginal_1 %>% as.numeric()
+
+ranking_data$P6_marginal_2 <- ifelse(ranking_data$P6_marginal_1 != "NA",  (5 - ranking_data$P6_marginal_1),
+                                     "NA")
+
+
+ranking_data$P6_marginal_3 <- ifelse(ranking_data$P6_2 == "Greta Thunberg will one day become the president of the European Union." & (ranking_data$P6_3.1 == "Greta Thunberg will one day become the president of the European Union." | ranking_data$P6_3.2 == "Greta Thunberg will one day become the president of the European Union." | ranking_data$P6_3.3 == "Greta Thunberg will one day become the president of the European Union." | ranking_data$P6_3.4 == "Greta Thunberg will one day become the president of the European Union."), '1', 
+                                     ifelse(ranking_data$P6_2 == "Greta Thunberg will one day become the president of the European Union." & (ranking_data$P6_3.1 != "Greta Thunberg will one day become the president of the European Union." & ranking_data$P6_3.2 != "Greta Thunberg will one day become the president of the European Union." & ranking_data$P6_3.3 != "Greta Thunberg will one day become the president of the European Union." & ranking_data$P6_3.4 != "Greta Thunberg will one day become the president of the European Union."), '2',
+                                            ifelse(ranking_data$P6_2 == "Greta Thunberg will not  become the president of the European Union." & (ranking_data$P6_3.1 == "Greta Thunberg will not  become the president of the European Union." | ranking_data$P6_3.2 == "Greta Thunberg will not  become the president of the European Union." | ranking_data$P6_3.3 == "Greta Thunberg will not  become the president of the European Union." | ranking_data$P6_3.4 == "Greta Thunberg will not  become the president of the European Union."), '4',
+                                                   ifelse(ranking_data$P6_2 == "Greta Thunberg will not  become the president of the European Union." & (ranking_data$P6_3.1 != "Greta Thunberg will not  become the president of the European Union." & ranking_data$P6_3.2 != "On a random day in England, it will not be freezing" & ranking_data$P6_3.3 != "Greta Thunberg will not  become the president of the European Union." & ranking_data$P6_3.4 != "Greta Thunberg will not  become the president of the European Union."), '3',
+                                                          "-"))))
+
+ranking_data$P6_marginal_3 <- ranking_data$P6_marginal_3 %>% as.numeric()
+
+
+ranking_data$P6_marginal_4 <- ifelse(ranking_data$P6_marginal_3 != "NA", (5-ranking_data$P6_marginal_3),
+                                     "NA")
+
+#### step 2
+ranking_data$event_set6_marginal<- ifelse(ranking_data$condition == "pair", paste(ranking_data$P6_marginal_1, "_", ranking_data$P6_marginal_2, "_", 
+                                                                                  ranking_data$P6_marginal_3, "_", ranking_data$P6_marginal_4),
+                                          ranking_data$event_set6_marginal)
+
+ranking_data$event_set6_conjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P6_4_1, "_", ranking_data$P6_4_2, "_", 
+                                                                                      ranking_data$P6_4_3, "_", ranking_data$P6_4_4),
+                                              ranking_data$event_set6_conjunction)
+
+ranking_data$event_set6_disjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P6_5_1, "_", ranking_data$P6_5_2, "_",
+                                                                                      ranking_data$P6_5_3, "_", ranking_data$P6_5_4),
+                                              ranking_data$event_set6_disjunction)
+
+ranking_data$event_set6_order <- ifelse (ranking_data$FL_20_DO ==  "Pair6.1|Pair6.2|Pair6.3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$FL_20_DO == "Pair6.1|Pair6.3|Pair6.2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$FL_20_DO == "Pair6.2|Pair6.1|Pair6.3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$FL_20_DO == "Pair6.2|Pair6.3|Pair6.1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$FL_20_DO == "Pair6.3|Pair6.2|Pair6.1",
+                                                                      'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$FL_20_DO == "Pair6.3|Pair6.1|Pair6.2",
+                                                                             'disjunction_marginal_conjunction',
+                                                                             ranking_data$event_set6_order))))))
+
+
+
+
+```
+
+
+```{r}
+##### event set 7
+ranking_data$P7_marginal_1 <- ifelse(ranking_data$P7_1 == "Japan will hold the Tokyo Olympics next summer." & (ranking_data$P7_3.1 == "Japan will hold the Tokyo Olympics next summer." | ranking_data$P7_3.2 == "Japan will hold the Tokyo Olympics next summer." | ranking_data$P7_3.3 == "Japan will hold the Tokyo Olympics next summer." | ranking_data$P7_3.4 == "Japan will hold the Tokyo Olympics next summer."), '1', 
+                                     ifelse(ranking_data$P7_1 == "Japan will hold the Tokyo Olympics next summer." & (ranking_data$P7_3.1 != "Japan will hold the Tokyo Olympics next summer." & ranking_data$P7_3.2 != "Japan will hold the Tokyo Olympics next summer." & ranking_data$P7_3.3 != "Japan will hold the Tokyo Olympics next summer." & ranking_data$P7_3.4 != "Japan will hold the Tokyo Olympics next summer."), '2',
+                                            ifelse(ranking_data$P7_1 == "Japan will not hold the Tokyo Olympics next summer." & (ranking_data$P7_3.1 == "Japan will not hold the Tokyo Olympics next summer." | ranking_data$P7_3.2 == "Japan will not hold the Tokyo Olympics next summer." | ranking_data$P7_3.3 == "Japan will not hold the Tokyo Olympics next summer." | ranking_data$P7_3.4 == "Japan will not hold the Tokyo Olympics next summer."), '4',
+                                                   ifelse(ranking_data$P7_1 == "Japan will not hold the Tokyo Olympics next summer." & (ranking_data$P7_3.1 != "Japan will not hold the Tokyo Olympics next summer." & ranking_data$P7_3.2 != "Japan will not hold the Tokyo Olympics next summer." & ranking_data$P7_3.3 != "Japan will not hold the Tokyo Olympics next summer." & ranking_data$P7_3.4 != "Japan will not hold the Tokyo Olympics next summer."), '3',
+                                                          '-'))))
+
+ranking_data$P7_marginal_1 <- ranking_data$P7_marginal_1 %>% as.numeric()
+
+ranking_data$P7_marginal_2 <- ifelse(ranking_data$P7_marginal_1 != "NA",  (5 - ranking_data$P7_marginal_1),
+                                     "NA")
+
+ranking_data$P7_marginal_3 <- ifelse(ranking_data$P7_2 == "COVID-19 vaccine will be available on the market in three months." & (ranking_data$P7_3.1 == "COVID-19 vaccine will be available on the market in three months." | ranking_data$P7_3.2 == "COVID-19 vaccine will be available on the market in three months." | ranking_data$P7_3.3 == "COVID-19 vaccine will be available on the market in three months." | ranking_data$P7_3.4 == "COVID-19 vaccine will be available on the market in three months."), '1', 
+                                     ifelse(ranking_data$P7_2 == "COVID-19 vaccine will be available on the market in three months." & (ranking_data$P7_3.1 != "COVID-19 vaccine will be available on the market in three months." & ranking_data$P7_3.2 != "COVID-19 vaccine will be available on the market in three months." & ranking_data$P7_3.3 != "COVID-19 vaccine will be available on the market in three months." & ranking_data$P7_3.4 != "COVID-19 vaccine will be available on the market in three months."), '2',
+                                            ifelse(ranking_data$P7_2 == "COVID-19 vaccine will not be available on the market in three months." & (ranking_data$P7_3.1 == "COVID-19 vaccine will not be available on the market in three months." | ranking_data$P7_3.2 == "COVID-19 vaccine will not be available on the market in three months." | ranking_data$P7_3.3 == "COVID-19 vaccine will not be available on the market in three months." | ranking_data$P7_3.4 == "COVID-19 vaccine will not be available on the market in three months."), '4',
+                                                   ifelse(ranking_data$P7_2 == "COVID-19 vaccine will not be available on the market in three months." & (ranking_data$P7_3.1 != "COVID-19 vaccine will not be available on the market in three months." & ranking_data$P7_3.2 != "On a random day in England, it will not be freezing" & ranking_data$P7_3.3 != "COVID-19 vaccine will not be available on the market in three months." & ranking_data$P7_3.4 != "COVID-19 vaccine will not be available on the market in three months."), '3',
+                                                          "-"))))
+
+ranking_data$P7_marginal_3 <- ranking_data$P7_marginal_3 %>% as.numeric()
+
+
+ranking_data$P7_marginal_4 <- ifelse(ranking_data$P7_marginal_3 != "NA", (5-ranking_data$P7_marginal_3),
+                                     "NA")
+
+#### step 2
+
+ranking_data$event_set7_marginal<- ifelse(ranking_data$condition == "pair", paste(ranking_data$P7_marginal_1, "_", ranking_data$P7_marginal_2, "_", 
+                                                                                  ranking_data$P7_marginal_3, "_", ranking_data$P7_marginal_4),
+                                          ranking_data$event_set7_marginal)
+
+ranking_data$event_set7_conjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P7_4_1, "_", ranking_data$P7_4_2, "_", 
+                                                                                      ranking_data$P7_4_3, "_", ranking_data$P7_4_4),
+                                              ranking_data$event_set7_conjunction)
+
+ranking_data$event_set7_disjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P7_5_1, "_", ranking_data$P7_5_2, "_",
+                                                                                      ranking_data$P7_5_3, "_", ranking_data$P7_5_4),
+                                              ranking_data$event_set7_disjunction)
+
+
+ranking_data$event_set7_order <- ifelse (ranking_data$FL_21_DO ==  "Pair7.1|Pair7.2|Pair7.3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$FL_21_DO == "Pair7.1|Pair7.3|Pair7.2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$FL_21_DO == "Pair7.2|Pair7.1|Pair7.3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$FL_21_DO == "Pair7.2|Pair7.3|Pair7.1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$FL_21_DO == "Pair7.3|Pair7.2|Pair7.1",
+                                                                      'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$FL_21_DO == "Pair7.3|Pair7.1|Pair7.2",
+                                                                             'disjunction_marginal_conjunction',
+                                                                             ranking_data$event_set7_order))))))
+
+
+
+
+```
+
+
+```{r}
+##### event set 8
+
+ranking_data$P8_marginal_1 <- ifelse(ranking_data$P8_1 == ranking_data$P8_1[2] & (ranking_data$P8_3.1 == ranking_data$P8_3.1[2] | ranking_data$P8_3.2 == ranking_data$P8_3.2[13] ), '1', 
+                                     ifelse(ranking_data$P8_1 == ranking_data$P8_1[2] & 
+                                              (ranking_data$P8_3.1 != ranking_data$P8_3.1[2] & ranking_data$P8_3.2 != ranking_data$P8_3.2[13] ), '2',
+                                            ifelse(ranking_data$P8_1 == ranking_data$P8_1[8] & 
+                                                     (ranking_data$P8_3.3 == ranking_data$P8_3.3[8] | ranking_data$P8_3.4 == ranking_data$P8_3.4[56]), '4',
+                                                   ifelse(ranking_data$P8_1 ==  ranking_data$P8_1[8] & 
+                                                            (ranking_data$P8_3.3 != ranking_data$P8_3.3[8] | ranking_data$P8_3.4 != ranking_data$P8_3.4[56]), '3',
+                                                          '-'))))
+
+ranking_data$P8_marginal_1 <- ranking_data$P8_marginal_1 %>% as.numeric()
+
+ranking_data$P8_marginal_2 <- ifelse(ranking_data$P8_marginal_1 != "NA",  (5 - ranking_data$P8_marginal_1),
+                                     "NA")
+
+
+ranking_data$P8_marginal_3 <- ifelse(ranking_data$P8_2 == ranking_data$P8_2[2] & 
+                                       (ranking_data$P8_3.1 == ranking_data$P8_3.1[38]|ranking_data$P8_3.3 == ranking_data$P8_3.3[50]), '1', 
+                                     ifelse(ranking_data$P8_2 == ranking_data$P8_2[2] & 
+                                              (ranking_data$P8_3.1 != ranking_data$P8_3.1[38] & ranking_data$P8_3.3 != ranking_data$P8_3.3[50]), '2',
+                                            ifelse(ranking_data$P8_2 == ranking_data$P8_2[13] & 
+                                                     (ranking_data$P8_3.2 == ranking_data$P8_3.2[57] | ranking_data$P8_3.4 == "The price of the bus ticket in your local area will not increase in 2021 compared to 2020."), '4',
+                                                   ifelse(ranking_data$P8_2 == ranking_data$P8_2[13] & 
+                                                            (ranking_data$P8_3.2 != ranking_data$P8_3.2[57] & ranking_data$P8_3.4 != "The price of the bus ticket in your local area will not increase in 2021 compared to 2020."), '3',
+                                                          "-"))))
+
+ranking_data$P8_marginal_3 <- ranking_data$P8_marginal_3 %>% as.numeric()
+
+
+ranking_data$P8_marginal_4 <- ifelse(ranking_data$P8_marginal_3 != "NA", (5-ranking_data$P8_marginal_3),
+                                     "NA")
+
+#### step 2
+ranking_data$event_set8_marginal<- ifelse(ranking_data$condition == "pair", paste(ranking_data$P8_marginal_1, "_", ranking_data$P8_marginal_2, "_", 
+                                                                                  ranking_data$P8_marginal_3, "_", ranking_data$P8_marginal_4),
+                                          ranking_data$event_set8_marginal)
+
+ranking_data$event_set8_conjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P8_4_1, "_", ranking_data$P8_4_2, "_", 
+                                                                                      ranking_data$P8_4_3, "_", ranking_data$P8_4_5),
+                                              ranking_data$event_set8_conjunction)
+
+ranking_data$event_set8_disjunction <- ifelse(ranking_data$condition == "pair", paste(ranking_data$P8_5_1, "_", ranking_data$P8_5_2, "_",
+                                                                                      ranking_data$P8_5_3, "_", ranking_data$P8_5_4),
+                                              ranking_data$event_set8_disjunction)
+
+
+ranking_data$event_set8_order <- ifelse (ranking_data$FL_23_DO ==  "Pair8.1|Pair8.2|Pair8.3", 'marginal_conjunction_disjunction',
+                                         ifelse (ranking_data$FL_23_DO == "Pair8.1|Pair8.3|Pair8.2", 'marginal_disjunction_conjunction', 
+                                                 ifelse(ranking_data$FL_23_DO == "Pair8.2|Pair8.1|Pair8.3", 'conjunction_marginal_disjunction',
+                                                        ifelse(ranking_data$FL_23_DO == "Pair8.2|Pair8.3|Pair8.1", 'conjunction_disjunction_marginal',
+                                                               ifelse(ranking_data$FL_23_DO == "Pair8.3|Pair8.2|Pair8.1",
+                                                                      'disjunction_conjunction_marginal',
+                                                                      ifelse(ranking_data$FL_23_DO == "Pair8.3|Pair8.1|Pair8.2",
+                                                                             'disjunction_marginal_conjunction',
+                                                                             ranking_data$event_set8_order))))))
+
+
+
+```
+
+```{r}
+
+ranking_data$numeracy_score <- 0
+
+ranking_data$numeracy_score <- ifelse(ranking_data$N_1 == 0.05, 
+      ranking_data$numeracy_score + 1, ranking_data$numeracy_score) 
+
+ranking_data$numeracy_score <- ifelse(ranking_data$N_2 == 47, 
+      ranking_data$numeracy_score + 1, ranking_data$numeracy_score)
+
+
+ranking_data$numeracy_score <- ifelse(ranking_data$N_3 == 0.1, 
+      ranking_data$numeracy_score + 1, ranking_data$numeracy_score) 
+
+ranking_data$numeracy_score <- ifelse(ranking_data$N_4 == 10, 
+      ranking_data$numeracy_score + 1, ranking_data$numeracy_score)
+
+ranking_data$numeracy_score <- ifelse(ranking_data$N_5 == 500, 
+      ranking_data$numeracy_score + 1, ranking_data$numeracy_score)
+
+ranking_data$numeracy_score <- ifelse(ranking_data$N_6 == 20, 
+      ranking_data$numeracy_score + 1, ranking_data$numeracy_score)
+
+ranking_data$numeracy_score <- ifelse(ranking_data$N_7 == 50, 
+      ranking_data$numeracy_score + 1, ranking_data$numeracy_score)
+```
+
+```{r}
+#### select /subset the data
+
+names(ranking_data)[names(ranking_data) == 'Duration..in.seconds.'] <- 'response_time'
+
+ranking_data2 <- ranking_data %>% 
+  select(PROLIFIC_PID, condition,event_set1_marginal: event_set8_order, numeracy_score, response_time, strat_1, Strat_2)
+
+
+write.csv(ranking_data2, file = 'ranking_data2.csv')
+
+
+#### have deleted the entries where the participants see event set 5 under full condition.
+
+
+```
+
+
+
+
