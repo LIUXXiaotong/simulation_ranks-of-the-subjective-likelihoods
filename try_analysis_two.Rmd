@@ -5,6 +5,15 @@ date: "14/08/2020"
 output: html_document
 ---
 
+```{r setup, include=FALSE}
+options(width = 110)
+library(tidyverse)
+library(afex)
+library(rtdists)
+library(cowplot)
+```
+
+
 2. Method
 
 3. results 
@@ -19,10 +28,6 @@ the questions i want to answer：
 
 
 ```{r}
-library(tidyverse)
-library(afex)
-library(rtdists)
-library(cowplot)
 
 
 
@@ -80,12 +85,13 @@ dt_nest <- dl %>%
 ### coherent formalities
 coherence_all <- read.csv("rank1_strict1_strict.csv", check.names=FALSE) 
 coherence_all <- coherence_all[-1]
+colnames(coherence_all) <- c("marginal", "conunction", "disjunction")
 
 
 coherence_all <- coherence_all %>% 
-  mutate(marginal = sanitise_ranks(`P(A)_P(¬A)_P(B)_P(¬B)`),
-         conjunction = sanitise_ranks(`P(A^B)_P(A^¬B)_P(¬A^B)_P(¬B^¬A)`),
-         disjunction = sanitise_ranks(`P(A∨B)_P(A∨¬B)_P(¬A∨B)_P(¬B∨¬A)`))
+  mutate(marginal = sanitise_ranks(marginal),
+         conjunction = sanitise_ranks(conunction),
+         disjunction = sanitise_ranks(disjunction))
 
 
 
