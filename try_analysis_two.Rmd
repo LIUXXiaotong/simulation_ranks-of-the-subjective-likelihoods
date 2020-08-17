@@ -363,7 +363,9 @@ dt2_two <- dt2 %>%
 
 a1_coh_two <- aov_ez("pid", "coherence_two",dt2_two, between = "condition", within = c("combination_of_two", "event_topic"))
 a1_coh_two
-afex_plot(a1_coh_two, "combination_of_two", "condition", "event_topic") ###  the interaction condition:combination_of_two:event_topic is significant
+afex_plot(a1_coh_two, "combination_of_two", "condition", "event_topic", data_geom = geom_count) ###  the interaction condition:combination_of_two:event_topic is significant
+
+emmeans::emmeans(a1_coh_two, "condition", by = c("combination_of_two", "event_topic")) %>% pairs() %>% update(by = NULL) %>% summary(adjust = "holm")
 
 dt2_exclu_two <- dt2_exclude %>% 
    pivot_longer(starts_with("coh_"), names_to = "combination_of_two", values_to = "coherence_two") 
@@ -377,12 +379,47 @@ afex_plot(a2_coh_two, "combination_of_two", "condition", "event_topic") ###  the
 Considering the order of the events 
 
 ### ？？？
+
+```{r}
+dord_all <- dt2 %>% 
+  group_by(pid, condition, order) %>% 
+  summarise(across(coherence_all:degree_of_coh, mean)) %>% 
+  separate(order, c("pos1", "pos2", "pos3"))
+
+dord_all %>% 
+  filter(pos1 == "marginal") %>% 
+  filter(pos2 == "conjunction" | pos3 == "conjunction") %>% 
+  ggplot(aes(x = pos2, y = coh_marg_conj)) +
+  geom_boxplot() +
+  stat_summary()
+
+dord_all %>% 
+  filter(pos1 == "marginal") %>% 
+  filter(pos2 == "disjunction" | pos3 == "disjunction") %>% 
+  ggplot(aes(x = pos2, y = coh_marg_disj)) +
+  geom_boxplot() +
+  stat_summary()
+
+```
+
+
 ```{r}
 dt2$marginal_order <- ifelse (dt2$order == "marginal_disjunction_conjunction" | dt2$order ==  "marginal_conjunction_disjunction" , "first", 
-                          ifelse(dt2$order == "disjunction_marginal_conjunction" | dt2$order ==  "conjunction_marginal_disjunction" | dt2$order == "disjunction_conjunction_marginal" | dt2$order ==  "conjunction_disjunction_marginal", "latter",
+                          ifelse(dt2$order == "disjunction_marginal_conjunction" | dt2$order ==  "conjunction_marginal_disjunction" | dt2$order == "disjunction_conjunction_marginal" | dt2$order ==  "conjunction_disjunction_marginal", "later",
                                         "NA"))
 
 dt2 %>% group_by(pid, marginal_order) %>% count()
+
+dord <- dt2 %>% 
+  group_by(pid, condition, marginal_order) %>%
+  summarise(across(coherence_all:degree_of_coh, mean))
+
+
+aov_ez("pid", "coh_marg_conj", dord, 
+       between = "condition", within = c("marginal_order"))
+
+aov_ez("pid", "coh_marg_disj", dord, 
+       between = "condition", within = c("marginal_order"))
 
 dt2_exclude$marginal_order <- ifelse (dt2_exclude$order == "marginal_disjunction_conjunction" | dt2_exclude$order ==  "marginal_conjunction_disjunction" , "first", 
                           ifelse(dt2_exclude$order == "disjunction_marginal_conjunction" | dt2_exclude$order ==  "conjunction_marginal_disjunction" | dt2_exclude$order == "disjunction_conjunction_marginal" | dt2_exclude$order ==  "conjunction_disjunction_marginal", "latter",
@@ -398,6 +435,16 @@ dt3 <- dt2 %>% filter()
 
 Question 3: who is more rational? 
 ```{r}
+
+dagg <- dt2 %>% 
+  group_by(pid, condition) %>% 
+  summarise(across(c(numeracy_score, response_time, coherence_all:degree_of_coh), mean))
+afex::set_sum_contrasts()
+
+m1 <- lm(coherence_all ~ numeracy_score*condition, dagg)
+summary(m1)
+
+
 ## including logical errors
 
 
